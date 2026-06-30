@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware';
 import { AuthState, TwoFAMethod, User } from '../types/auth';
 import { MOCK_USERS, MOCK_CREDENTIALS } from './mock-data';
 import { notifyLogin } from './loginNotification';
+import { POC_MODE, POC_ALLOWED_ROLES } from './pocConfig';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -20,6 +21,10 @@ export const useAuthStore = create<AuthState>()(
         }
         const user = MOCK_USERS.find(u => u.id === cred.userId);
         if (!user) return { success: false, requires2FA: false, error: 'User not found' };
+        if (POC_MODE && !POC_ALLOWED_ROLES.has(user.role)) {
+          return { success: false, requires2FA: false, error: 'This account is not available in the demo. Use the Cafe Owner or Manager account.' };
+        }
+
 
         set({ user, token: `mock-jwt-${user.id}-${Date.now()}` });
         
