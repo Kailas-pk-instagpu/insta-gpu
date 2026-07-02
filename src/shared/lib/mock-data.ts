@@ -10,12 +10,8 @@ export const MOCK_USERS: User[] = [
   { id: '7', email: 'manager2@gpucloud.io', name: 'Morgan Tran', role: 'manager', createdBy: '4', assignedScope: ['branch-2'], is2FAEnabled: false, twoFAMethod: null, createdAt: '2024-05-10' },
 ];
 
-export const MOCK_CREDENTIALS: Record<string, { password: string; userId: string }> = {
-  'superadmin@gpucloud.io': { password: 'admin123', userId: '1' },
-  'admin@gpucloud.io': { password: 'admin123', userId: '2' },
-  'owner@gpucloud.io': { password: 'admin123', userId: '4' },
-  'manager@gpucloud.io': { password: 'admin123', userId: '6' },
-};
+
+
 
 export interface BranchBilling {
   costPerMinute: number; // in MYR (RM)

@@ -1,36 +1,21 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuthStore } from '@/shared/lib/store';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Gamepad2, Eye, EyeOff, AlertCircle, Loader2 } from 'lucide-react';
 import GPUBackground from '@/features/login/GPUBackground';
+import { useLogin } from '@/features/login/hooks/useLogin';
+import { useState } from 'react';
 
 export default function LoginPage() {
-  const navigate = useNavigate();
-  const { login } = useAuthStore();
+  const { login, loading, error } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setLoading(true);
-
-    setTimeout(() => {
-      const result = login(email, password);
-      setLoading(false);
-      if (!result.success) {
-        setError(result.error || 'Login failed');
-        return;
-      }
-      if (result.requires2FA) navigate('/verify-2fa');
-      else navigate('/dashboard');
-    }, 800);
+    await login(email, password);
   };
 
   return (
@@ -137,20 +122,9 @@ export default function LoginPage() {
                 )}
               </Button>
             </div>
-
-            <div
-              className="mt-5 p-3 rounded-lg bg-background/40 border border-white/10 text-xs text-muted-foreground space-y-0.5 animate-login-in"
-              style={{ animationDelay: '780ms' }}
-            >
-              <p className="font-medium text-foreground text-xs mb-1.5">Demo accounts</p>
-              <p className="font-mono text-[11px]">superadmin@gpucloud.io</p>
-              <p className="font-mono text-[11px]">admin@gpucloud.io · owner@gpucloud.io · manager@gpucloud.io</p>
-              <p className="mt-1">Password: <span className="font-mono">admin123</span></p>
-            </div>
           </form>
         </div>
       </div>
     </div>
   );
 }
-

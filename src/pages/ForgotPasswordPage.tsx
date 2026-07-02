@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Gamepad2, ArrowLeft, Mail, CheckCircle2, AlertCircle } from 'lucide-react';
-import { MOCK_CREDENTIALS } from '@/shared/lib/mock-data';
 
 export default function ForgotPasswordPage() {
   const [email, setEmail] = useState('');
@@ -21,15 +20,13 @@ export default function ForgotPasswordPage() {
     setError('');
     setLoading(true);
 
+    // Simulate sending reset code — real implementation pending backend endpoint
     setTimeout(() => {
       setLoading(false);
-      if (!MOCK_CREDENTIALS[email]) {
-        setError('No account found with this email address');
-        return;
-      }
       setStep('code');
     }, 1000);
   };
+
 
   const handleVerifyCode = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,8 +57,8 @@ export default function ForgotPasswordPage() {
     }
 
     setLoading(true);
+    // Simulate password reset — real implementation pending backend endpoint
     setTimeout(() => {
-      MOCK_CREDENTIALS[email].password = newPassword;
       setLoading(false);
       setStep('done');
     }, 800);

@@ -1,9 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import { AuthState, TwoFAMethod, User } from '../types/auth';
-import { MOCK_USERS, MOCK_CREDENTIALS } from './mock-data';
 import { notifyLogin } from './loginNotification';
-import { POC_MODE, POC_ALLOWED_ROLES } from './pocConfig';
 
 export const useAuthStore = create<AuthState>()(
   persist(
@@ -14,28 +12,11 @@ export const useAuthStore = create<AuthState>()(
       isAuthenticated: false,
       theme: 'dark',
 
-      login: (email: string, password: string) => {
-        const cred = MOCK_CREDENTIALS[email];
-        if (!cred || cred.password !== password) {
-          return { success: false, requires2FA: false, error: 'Invalid email or password' };
+      setAuthDetails: ({ user, token, isAuthenticated, is2FAVerified }) => {
+        set({ user, token, is2FAVerified, isAuthenticated });
+        if (isAuthenticated) {
+          notifyLogin(user);
         }
-        const user = MOCK_USERS.find(u => u.id === cred.userId);
-        if (!user) return { success: false, requires2FA: false, error: 'User not found' };
-        if (POC_MODE && !POC_ALLOWED_ROLES.has(user.role)) {
-          return { success: false, requires2FA: false, error: 'This account is not available in the demo. Use the Cafe Owner or Manager account.' };
-        }
-
-
-        set({ user, token: `mock-jwt-${user.id}-${Date.now()}` });
-        
-        if (user.is2FAEnabled) {
-          set({ is2FAVerified: false, isAuthenticated: false });
-          return { success: true, requires2FA: true };
-        }
-        
-        set({ is2FAVerified: true, isAuthenticated: true });
-        notifyLogin(user);
-        return { success: true, requires2FA: false };
       },
 
       verify2FA: (code: string) => {
@@ -83,12 +64,8 @@ export const useAuthStore = create<AuthState>()(
       changePassword: (oldPassword: string, newPassword: string) => {
         const user = get().user;
         if (!user) return { success: false, error: 'Not logged in' };
-        const cred = MOCK_CREDENTIALS[user.email];
-        if (!cred || cred.password !== oldPassword) {
-          return { success: false, error: 'Current password is incorrect' };
-        }
-        // Update mock credential
-        MOCK_CREDENTIALS[user.email].password = newPassword;
+        
+        // Simulating successful password change
         return { success: true };
       },
     }),

@@ -23,7 +23,7 @@ export interface AuthState {
   is2FAVerified: boolean;
   isAuthenticated: boolean;
   theme: 'light' | 'dark';
-  login: (email: string, password: string) => { success: boolean; requires2FA: boolean; error?: string };
+  setAuthDetails: (details: { user: User; token: string; isAuthenticated: boolean; is2FAVerified: boolean }) => void;
   verify2FA: (code: string) => boolean;
   logout: () => void;
   toggleTheme: () => void;
