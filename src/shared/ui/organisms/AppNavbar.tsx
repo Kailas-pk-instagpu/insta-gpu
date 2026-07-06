@@ -4,6 +4,7 @@ import { DynamicIslandToasts } from './DynamicIslandToasts';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '@/shared/lib/store';
 import { useNotificationStore } from '@/shared/lib/store';
+import { AuthService } from '@/services/auth.service';
 import { ROLE_LABELS } from '@/shared/types/auth';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Button } from '@/components/ui/button';
@@ -36,7 +37,7 @@ const typeBg = {
 };
 
 export function AppNavbar() {
-  const { user, theme, toggleTheme, logout } = useAuthStore();
+  const { user, token, theme, toggleTheme, logout } = useAuthStore();
   const navigate = useNavigate();
   const { notifications, markAsRead, markAllAsRead, lastIncoming } = useNotificationStore();
   const unreadCount = notifications.filter(n => !n.read).length;
@@ -90,7 +91,11 @@ export function AppNavbar() {
                 Settings
               </DropdownMenuItem>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => { logout(); navigate('/login'); }} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+              <DropdownMenuItem onClick={async () => {
+                if (token) await AuthService.logout(token);
+                logout();
+                navigate('/login');
+              }} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
                 <LogOut className="h-4 w-4" />
                 Sign out
               </DropdownMenuItem>

@@ -14,6 +14,7 @@ export interface User {
   phone?: string;
   address?: string;
   logoUrl?: string;
+  profileCompletion?: number;
   createdAt: string;
 }
 
@@ -29,7 +30,7 @@ export interface AuthState {
   toggleTheme: () => void;
   enable2FA: (method: TwoFAMethod, phone?: string) => void;
   disable2FA: () => void;
-  updateProfile: (updates: Partial<Pick<User, 'name' | 'email' | 'phone' | 'address' | 'logoUrl'>>) => void;
+  updateProfile: (updates: Partial<User>) => void;
   changePassword: (oldPassword: string, newPassword: string) => { success: boolean; error?: string };
 }
 

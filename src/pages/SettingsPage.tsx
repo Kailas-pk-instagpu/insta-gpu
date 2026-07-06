@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useAuthStore, useDeletionRequestStore } from '@/shared/lib/store';
+import { AuthService } from '@/services/auth.service';
 import { ROLE_LABELS, TwoFAMethod } from '@/shared/types/auth';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -203,7 +204,7 @@ const baseTabs = [
 type TabId = typeof baseTabs[number]['id'];
 
 export default function SettingsPage() {
-  const { user, theme, toggleTheme, updateProfile, changePassword } = useAuthStore();
+  const { user, token, theme, toggleTheme, updateProfile, changePassword } = useAuthStore();
   const { createRequest, hasPendingForUser } = useDeletionRequestStore();
   const [showDeleteSelf, setShowDeleteSelf] = useState(false);
   const [deleteReason, setDeleteReason] = useState('');
@@ -229,6 +230,37 @@ export default function SettingsPage() {
     return () => window.removeEventListener('hashchange', applyHash);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user?.role]);
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      if (!token) return;
+      try {
+        const data = await AuthService.getProfile(token);
+        const mapped = {
+          ...user,
+          name: data.name,
+          email: data.email,
+          phone: data.phone,
+          address: data.address,
+          logoUrl: data.avatar_url,
+          is2FAEnabled: data.two_fa_enabled,
+          profileCompletion: data.profile_completion_percentage,
+        };
+        updateProfile(mapped);
+        
+        // Update local state as well
+        setName(data.name || '');
+        setEmail(data.email || '');
+        setPhone(data.phone || '');
+        setAddress(data.address || '');
+        setLogoPreview(data.avatar_url || '');
+      } catch (err) {
+        console.error('Failed to fetch profile:', err);
+      }
+    };
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token]);
 
   // Profile state
   const [name, setName] = useState(user?.name || '');
@@ -256,15 +288,40 @@ export default function SettingsPage() {
     reader.readAsDataURL(file);
   };
 
-  const handleSaveProfile = () => {
+  const handleSaveProfile = async () => {
     if (!name.trim()) { toast.error('Name is required'); return; }
     if (!email.trim() || !/\S+@\S+\.\S+/.test(email)) { toast.error('Valid email is required'); return; }
+    if (!token) { toast.error('Authentication token missing'); return; }
+
     setIsSaving(true);
-    setTimeout(() => {
-      updateProfile({ name: name.trim(), email: email.trim(), phone: phone.trim(), address: address.trim(), logoUrl: logoPreview || undefined });
+    try {
+      const updates = {
+        name: name.trim(),
+        phone: phone.trim(),
+        address: address.trim(),
+        avatar_url: logoPreview || undefined,
+      };
+
+      const updatedData = await AuthService.updateProfile(token, updates);
+      
+      // Map backend response to frontend User type
+      const mappedUser = {
+        ...user,
+        name: updatedData.name,
+        phone: updatedData.phone,
+        address: updatedData.address,
+        logoUrl: updatedData.avatar_url,
+        is2FAEnabled: updatedData.two_fa_enabled,
+        // email is not updated by the backend currently, but we can keep what we have or update from response if it adds it later
+      };
+
+      updateProfile(mappedUser);
       toast.success('Profile updated successfully');
+    } catch (error: any) {
+      toast.error(error.message || 'Failed to update profile');
+    } finally {
       setIsSaving(false);
-    }, 500);
+    }
   };
 
   const handleChangePassword = () => {
@@ -396,7 +453,7 @@ export default function SettingsPage() {
                 { key: 'Two-factor authentication', filled: user.is2FAEnabled },
               ];
               const completed = fields.filter(f => f.filled).length;
-              const percent = Math.round((completed / fields.length) * 100);
+              const percent = user.profileCompletion ?? Math.round((completed / fields.length) * 100);
               const missing = fields.filter(f => !f.filled).map(f => f.key);
               const tone =
                 percent === 100 ? 'text-emerald-500'
@@ -421,7 +478,7 @@ export default function SettingsPage() {
                   </div>
                   <Progress value={percent} className="h-2" />
                   <p className="text-[11px] text-muted-foreground mt-2">
-                    {completed} of {fields.length} fields completed
+                    {user.profileCompletion !== undefined ? Math.round((user.profileCompletion / 100) * fields.length) : completed} of {fields.length} fields completed
                   </p>
                 </div>
 
@@ -465,7 +522,7 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="profile-email">Email Address *</Label>
-                    <Input id="profile-email" type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" />
+                    <Input id="profile-email" type="email" value={email} disabled className="bg-muted" />
                   </div>
                   <div className="space-y-1.5">
                     <Label htmlFor="profile-phone">Mobile Number</Label>
