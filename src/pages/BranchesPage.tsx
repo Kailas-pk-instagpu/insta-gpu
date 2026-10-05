@@ -17,7 +17,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Building2, MapPin, Monitor, Plus, Settings, Edit, Power, Trash2, UserCheck, Armchair, Shield, User, Users, LayoutGrid, Cpu, Clock, X, Pencil, Wrench, CheckCircle2, Search, SlidersHorizontal } from 'lucide-react';
 import { toast } from 'sonner';
-import { Role } from '@/shared/types/auth';
+import { Role, User as AuthUser } from '@/shared/types/auth';
 import { cn } from '@/lib/utils';
 import ShiftManagementDialog from '@/features/branches/ShiftManagementDialog';
 
@@ -40,6 +40,220 @@ function getUsersByRole(role: Role) {
 function getUserName(id?: string) {
   if (!id) return null;
   return MOCK_USERS.find(u => u.id === id);
+}
+
+function AssignedTeamCard({ branch }: { branch: Branch }) {
+  const admin = getUserName(branch.adminId);
+  const owner = getUserName(branch.cafeOwnerId);
+  const manager = getUserName(branch.managerId);
+
+  const assignments = [
+    { label: 'Admin', user: admin, icon: Shield, color: 'text-destructive' },
+    { label: 'Cafe Owner', user: owner, icon: User, color: 'text-primary' },
+    { label: 'Manager', user: manager, icon: UserCheck, color: 'text-accent-foreground' },
+  ];
+
+  return (
+    <div className="space-y-1.5 mt-1">
+      {assignments.map(a => (
+        <div key={a.label} className="flex items-center gap-1.5 text-sm">
+          <a.icon className={`h-3 w-3 ${a.color} shrink-0`} />
+          <span className="text-muted-foreground text-xs w-[72px] shrink-0">{a.label}:</span>
+          {a.user ? (
+            <span className="text-xs font-medium truncate">{a.user.name}</span>
+          ) : (
+            <span className="text-xs text-muted-foreground italic">Unassigned</span>
+          )}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+interface BranchFormFieldsProps {
+  isEdit: boolean;
+  form: BranchForm;
+  setForm: React.Dispatch<React.SetStateAction<BranchForm>>;
+  selectedBranch: Branch | null;
+  assignableAdmins: AuthUser[];
+  assignableCafeOwners: AuthUser[];
+  assignableManagers: AuthUser[];
+}
+
+function BranchFormFields({
+  isEdit,
+  form,
+  setForm,
+  selectedBranch,
+  assignableAdmins,
+  assignableCafeOwners,
+  assignableManagers,
+}: BranchFormFieldsProps) {
+  const nameId = isEdit ? 'edit-branch-name' : 'add-branch-name';
+  const addressId = isEdit ? 'edit-branch-address' : 'add-branch-address';
+  const seatsId = isEdit ? 'edit-branch-seats' : 'add-branch-seats';
+
+  return (
+    <div className="space-y-5">
+      {/* Step 1: Basic Info */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Step 1 — Branch Details
+        </p>
+        <div className="space-y-3">
+          <div>
+            <Label htmlFor={nameId}>Branch Name *</Label>
+            <Input
+              id={nameId}
+              placeholder="e.g. Downtown Gaming Hub"
+              value={form.name}
+              onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Give your branch a recognizable name</p>
+          </div>
+          <div>
+            <Label htmlFor={addressId}>Address *</Label>
+            <Input
+              id={addressId}
+              placeholder="e.g. 123 Main Street, City"
+              value={form.address}
+              onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
+            />
+            <p className="text-xs text-muted-foreground mt-1">Full street address of the branch</p>
+          </div>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Step 2: Seats */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Step 2 — Configure Seats
+        </p>
+        <div>
+          <Label htmlFor={seatsId}>Number of Seats</Label>
+          <div className="flex items-center gap-3 mt-1">
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setForm(f => ({ ...f, totalSeats: Math.max(1, f.totalSeats - 1) }))}
+            >
+              −
+            </Button>
+            <Input
+              id={seatsId}
+              type="number"
+              min={1}
+              className="w-24 text-center"
+              value={form.totalSeats}
+              onChange={e => setForm(f => ({ ...f, totalSeats: Math.max(1, parseInt(e.target.value) || 1) }))}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-9 w-9"
+              onClick={() => setForm(f => ({ ...f, totalSeats: f.totalSeats + 1 }))}
+            >
+              +
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1">
+            {isEdit && selectedBranch
+              ? `Currently ${selectedBranch.activeSeats} seats are active out of ${selectedBranch.totalSeats}`
+              : 'How many gaming stations does this branch have?'}
+          </p>
+        </div>
+      </div>
+
+      <Separator />
+
+      {/* Step 3: Assign Users */}
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+          Step 3 — Assign Team
+        </p>
+        <p className="text-xs text-muted-foreground mb-4">Assign users to manage and operate this branch</p>
+        <div className="space-y-4">
+          {/* Admin Assignment - only Super Admin can assign */}
+          {assignableAdmins.length > 0 && (
+            <div>
+              <Label className="flex items-center gap-1.5 mb-1">
+                <Shield className="h-3.5 w-3.5 text-destructive" /> Admin
+              </Label>
+              <Select value={form.adminId} onValueChange={v => setForm(f => ({ ...f, adminId: v === 'none' ? '' : v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select an admin" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No admin assigned</SelectItem>
+                  {assignableAdmins.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} — {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Admin will oversee this branch's operations</p>
+            </div>
+          )}
+
+          {/* Cafe Owner Assignment - Super Admin and Admin can assign */}
+          {assignableCafeOwners.length > 0 && (
+            <div>
+              <Label className="flex items-center gap-1.5 mb-1">
+                <User className="h-3.5 w-3.5 text-primary" /> Cafe Owner
+              </Label>
+              <Select value={form.cafeOwnerId} onValueChange={v => setForm(f => ({ ...f, cafeOwnerId: v === 'none' ? '' : v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a cafe owner" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No cafe owner assigned</SelectItem>
+                  {assignableCafeOwners.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} — {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Cafe owner will manage day-to-day operations</p>
+            </div>
+          )}
+
+          {/* Manager Assignment - Super Admin, Admin, Cafe Owner can assign */}
+          {assignableManagers.length > 0 && (
+            <div>
+              <Label className="flex items-center gap-1.5 mb-1">
+                <UserCheck className="h-3.5 w-3.5 text-accent-foreground" /> Manager
+              </Label>
+              <Select value={form.managerId} onValueChange={v => setForm(f => ({ ...f, managerId: v === 'none' ? '' : v }))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select a manager" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No manager assigned</SelectItem>
+                  {assignableManagers.map(u => (
+                    <SelectItem key={u.id} value={u.id}>
+                      {u.name} — {u.email}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground mt-1">Manager will handle this specific branch</p>
+            </div>
+          )}
+
+          {assignableAdmins.length === 0 && assignableCafeOwners.length === 0 && assignableManagers.length === 0 && (
+            <p className="text-sm text-muted-foreground italic">No users available for assignment at your permission level</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
 }
 
 export default function BranchesPage() {
@@ -255,200 +469,26 @@ export default function BranchesPage() {
   };
 
   // Filtered user lists for assignments based on current user role
-  const getAssignableAdmins = () => {
+  const assignableAdmins = useMemo(() => {
     if (userRole === 'super_admin') return admins;
     return [];
-  };
+  }, [userRole, admins]);
 
-  const getAssignableCafeOwners = () => {
+  const assignableCafeOwners = useMemo(() => {
     if (userRole === 'super_admin') return cafeOwners;
-    if (userRole === 'admin') return cafeOwners.filter(o => o.createdBy === currentUser!.id);
+    if (userRole === 'admin' && currentUser) return cafeOwners.filter(o => o.createdBy === currentUser.id);
     return [];
-  };
+  }, [userRole, cafeOwners, currentUser]);
 
-  const getAssignableManagers = () => {
+  const assignableManagers = useMemo(() => {
     if (userRole === 'super_admin') return managers;
-    if (userRole === 'admin') {
-      const ownCafeOwners = cafeOwners.filter(o => o.createdBy === currentUser!.id).map(o => o.id);
+    if (userRole === 'admin' && currentUser) {
+      const ownCafeOwners = cafeOwners.filter(o => o.createdBy === currentUser.id).map(o => o.id);
       return managers.filter(m => m.createdBy && ownCafeOwners.includes(m.createdBy));
     }
-    if (userRole === 'cafe_owner') return managers.filter(m => m.createdBy === currentUser!.id);
+    if (userRole === 'cafe_owner' && currentUser) return managers.filter(m => m.createdBy === currentUser.id);
     return [];
-  };
-
-  const AssignmentUserLabel = ({ userId, role }: { userId?: string; role: string }) => {
-    const user = getUserName(userId);
-    if (!user) return <span className="text-muted-foreground italic text-xs">Not assigned</span>;
-    return (
-      <span className="text-sm flex items-center gap-1.5">
-        <span className="font-medium">{user.name}</span>
-        <span className="text-muted-foreground">({user.email})</span>
-      </span>
-    );
-  };
-
-  const BranchFormFields = ({ isEdit }: { isEdit: boolean }) => {
-    const assignableAdmins = getAssignableAdmins();
-    const assignableCafeOwners = getAssignableCafeOwners();
-    const assignableManagers = getAssignableManagers();
-
-    return (
-      <div className="space-y-5">
-        {/* Step 1: Basic Info */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Step 1 — Branch Details
-          </p>
-          <div className="space-y-3">
-            <div>
-              <Label htmlFor="name">Branch Name *</Label>
-              <Input id="name" placeholder="e.g. Downtown Gaming Hub" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
-              <p className="text-xs text-muted-foreground mt-1">Give your branch a recognizable name</p>
-            </div>
-            <div>
-              <Label htmlFor="address">Address *</Label>
-              <Input id="address" placeholder="e.g. 123 Main Street, City" value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} />
-              <p className="text-xs text-muted-foreground mt-1">Full street address of the branch</p>
-            </div>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Step 2: Seats */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Step 2 — Configure Seats
-          </p>
-          <div>
-            <Label htmlFor="seats">Number of Seats</Label>
-            <div className="flex items-center gap-3 mt-1">
-              <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setForm(f => ({ ...f, totalSeats: Math.max(1, f.totalSeats - 1) }))}>−</Button>
-              <Input id="seats" type="number" min={1} className="w-24 text-center" value={form.totalSeats} onChange={e => setForm(f => ({ ...f, totalSeats: Math.max(1, parseInt(e.target.value) || 1) }))} />
-              <Button type="button" variant="outline" size="icon" className="h-9 w-9" onClick={() => setForm(f => ({ ...f, totalSeats: f.totalSeats + 1 }))}>+</Button>
-            </div>
-            <p className="text-xs text-muted-foreground mt-1">
-              {isEdit && selectedBranch
-                ? `Currently ${selectedBranch.activeSeats} seats are active out of ${selectedBranch.totalSeats}`
-                : 'How many gaming stations does this branch have?'}
-            </p>
-          </div>
-        </div>
-
-        <Separator />
-
-        {/* Step 3: Assign Users */}
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
-            Step 3 — Assign Team
-          </p>
-          <p className="text-xs text-muted-foreground mb-4">Assign users to manage and operate this branch</p>
-          <div className="space-y-4">
-            {/* Admin Assignment - only Super Admin can assign */}
-            {assignableAdmins.length > 0 && (
-              <div>
-                <Label className="flex items-center gap-1.5 mb-1">
-                  <Shield className="h-3.5 w-3.5 text-destructive" /> Admin
-                </Label>
-                <Select value={form.adminId} onValueChange={v => setForm(f => ({ ...f, adminId: v === 'none' ? '' : v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select an admin" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No admin assigned</SelectItem>
-                    {assignableAdmins.map(u => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} — {u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Admin will oversee this branch's operations</p>
-              </div>
-            )}
-
-            {/* Cafe Owner Assignment - Super Admin and Admin can assign */}
-            {assignableCafeOwners.length > 0 && (
-              <div>
-                <Label className="flex items-center gap-1.5 mb-1">
-                  <User className="h-3.5 w-3.5 text-primary" /> Cafe Owner
-                </Label>
-                <Select value={form.cafeOwnerId} onValueChange={v => setForm(f => ({ ...f, cafeOwnerId: v === 'none' ? '' : v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a cafe owner" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No cafe owner assigned</SelectItem>
-                    {assignableCafeOwners.map(u => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} — {u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Cafe owner will manage day-to-day operations</p>
-              </div>
-            )}
-
-            {/* Manager Assignment - Super Admin, Admin, Cafe Owner can assign */}
-            {assignableManagers.length > 0 && (
-              <div>
-                <Label className="flex items-center gap-1.5 mb-1">
-                  <UserCheck className="h-3.5 w-3.5 text-accent-foreground" /> Manager
-                </Label>
-                <Select value={form.managerId} onValueChange={v => setForm(f => ({ ...f, managerId: v === 'none' ? '' : v }))}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a manager" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">No manager assigned</SelectItem>
-                    {assignableManagers.map(u => (
-                      <SelectItem key={u.id} value={u.id}>
-                        {u.name} — {u.email}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <p className="text-xs text-muted-foreground mt-1">Manager will handle this specific branch</p>
-              </div>
-            )}
-
-            {assignableAdmins.length === 0 && assignableCafeOwners.length === 0 && assignableManagers.length === 0 && (
-              <p className="text-sm text-muted-foreground italic">No users available for assignment at your permission level</p>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  };
-
-  const AssignedTeamCard = ({ branch }: { branch: Branch }) => {
-    const admin = getUserName(branch.adminId);
-    const owner = getUserName(branch.cafeOwnerId);
-    const manager = getUserName(branch.managerId);
-
-    const assignments = [
-      { label: 'Admin', user: admin, icon: Shield, color: 'text-destructive' },
-      { label: 'Cafe Owner', user: owner, icon: User, color: 'text-primary' },
-      { label: 'Manager', user: manager, icon: UserCheck, color: 'text-accent-foreground' },
-    ];
-
-    return (
-      <div className="space-y-1.5 mt-1">
-        {assignments.map(a => (
-          <div key={a.label} className="flex items-center gap-1.5 text-sm">
-            <a.icon className={`h-3 w-3 ${a.color} shrink-0`} />
-            <span className="text-muted-foreground text-xs w-[72px] shrink-0">{a.label}:</span>
-            {a.user ? (
-              <span className="text-xs font-medium truncate">{a.user.name}</span>
-            ) : (
-              <span className="text-xs text-muted-foreground italic">Unassigned</span>
-            )}
-          </div>
-        ))}
-      </div>
-    );
-  };
+  }, [userRole, managers, cafeOwners, currentUser]);
 
   return (
     <div className="space-y-6">
@@ -664,7 +704,15 @@ export default function BranchesPage() {
             <DialogTitle className="flex items-center gap-2"><Building2 className="h-5 w-5" /> Add New Branch</DialogTitle>
             <DialogDescription>Set up a new gaming cafe location with seats and team assignments</DialogDescription>
           </DialogHeader>
-          <BranchFormFields isEdit={false} />
+          <BranchFormFields
+            isEdit={false}
+            form={form}
+            setForm={setForm}
+            selectedBranch={selectedBranch}
+            assignableAdmins={assignableAdmins}
+            assignableCafeOwners={assignableCafeOwners}
+            assignableManagers={assignableManagers}
+          />
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Cancel</Button>
             <Button className="gradient-primary text-primary-foreground" onClick={submitAdd} disabled={!form.name.trim() || !form.address.trim()}>Create Branch</Button>
@@ -679,7 +727,15 @@ export default function BranchesPage() {
             <DialogTitle className="flex items-center gap-2"><Edit className="h-5 w-5" /> Edit Branch</DialogTitle>
             <DialogDescription>Update branch details, seats, and team assignments</DialogDescription>
           </DialogHeader>
-          <BranchFormFields isEdit={true} />
+          <BranchFormFields
+            isEdit={true}
+            form={form}
+            setForm={setForm}
+            selectedBranch={selectedBranch}
+            assignableAdmins={assignableAdmins}
+            assignableCafeOwners={assignableCafeOwners}
+            assignableManagers={assignableManagers}
+          />
           <DialogFooter className="mt-4">
             <Button variant="outline" onClick={() => setShowManageDialog(false)}>Cancel</Button>
             <Button className="gradient-primary text-primary-foreground" onClick={submitUpdate} disabled={!form.name.trim() || !form.address.trim()}>Save Changes</Button>

@@ -8,12 +8,21 @@ export const POC_ALLOWED_PATHS = new Set<string>([
   '/branches',
   '/seats',
   '/billing/session',
+  '/billing/settlements',
   '/notifications',
   '/settings',
+  '/gpu-nodes',
+  '/users',
+  '/analytics',
+  '/monitoring',
+  '/bookings',
+  '/issues',
+  '/deletion-requests',
 ]);
 
 // Roles that can sign in during the POC demo.
-export const POC_ALLOWED_ROLES = new Set<string>(['cafe_owner', 'manager']);
+// Allowed: super_admin and cafe_owner. Other roles are restricted without deleting their code.
+export const POC_ALLOWED_ROLES = new Set<string>(['super_admin', 'cafe_owner']);
 
 export function isPocPathAllowed(path: string): boolean {
   if (!POC_MODE) return true;

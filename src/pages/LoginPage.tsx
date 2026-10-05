@@ -8,7 +8,7 @@ import { useLogin } from '@/features/login/hooks/useLogin';
 import { useState } from 'react';
 
 export default function LoginPage() {
-  const { login, loading, error } = useLogin();
+  const { login, loading, error, clearError } = useLogin();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +16,12 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     await login(email, password);
+  };
+
+  const fillAccount = (demoEmail: string) => {
+    setEmail(demoEmail);
+    setPassword('admin123');
+    clearError();
   };
 
   return (
@@ -57,7 +63,7 @@ export default function LoginPage() {
             {error && (
               <div className="flex items-center gap-2 p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm animate-login-in">
                 <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
@@ -70,7 +76,10 @@ export default function LoginPage() {
                 type="email"
                 placeholder="you@gpucloud.io"
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) clearError();
+                }}
                 required
                 className="h-11 bg-background/40 border-white/10 focus-visible:ring-primary/60 transition-all"
               />
@@ -91,7 +100,10 @@ export default function LoginPage() {
                   type={showPassword ? 'text' : 'password'}
                   placeholder="••••••••••"
                   value={password}
-                  onChange={(e) => setPassword(e.target.value)}
+                  onChange={(e) => {
+                    setPassword(e.target.value);
+                    if (error) clearError();
+                  }}
                   required
                   className="h-11 pr-10 bg-background/40 border-white/10 focus-visible:ring-primary/60 transition-all"
                 />
@@ -121,6 +133,37 @@ export default function LoginPage() {
                   'Log in'
                 )}
               </Button>
+            </div>
+
+            {/* Quick-fill Demo Accounts */}
+            <div
+              className="mt-5 p-3 rounded-xl bg-background/40 border border-white/10 text-xs text-muted-foreground space-y-2 animate-login-in"
+              style={{ animationDelay: '620ms' }}
+            >
+              <div className="flex items-center justify-between">
+                <p className="font-medium text-foreground text-xs">Demo Accounts (Permitted Roles)</p>
+                <span className="text-[10px] text-muted-foreground">Click to fill</span>
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
+                  onClick={() => fillAccount('superadmin@gpucloud.io')}
+                >
+                  Super Admin
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  className="h-8 text-xs border-white/10 hover:bg-primary/10 hover:text-primary hover:border-primary/30 transition-all"
+                  onClick={() => fillAccount('owner@gpucloud.io')}
+                >
+                  Cafe Owner
+                </Button>
+              </div>
             </div>
           </form>
         </div>
