@@ -43,7 +43,7 @@ const App = () => (
             <Route path="/users" element={<RoleGuard roles={['super_admin', 'admin', 'cafe_owner']}><UsersPage /></RoleGuard>} />
             <Route path="/gpu-nodes" element={<RoleGuard roles={['super_admin']}><GPUNodesPage /></RoleGuard>} />
             <Route path="/branches" element={<RoleGuard roles={['super_admin', 'admin', 'cafe_owner']}><BranchesPage /></RoleGuard>} />
-            <Route path="/seats" element={<RoleGuard roles={['manager']}><SeatsPage /></RoleGuard>} />
+            <Route path="/seats" element={<RoleGuard roles={['cafe_owner', 'manager']}><SeatsPage /></RoleGuard>} />
             <Route path="/bookings" element={<RoleGuard roles={['cafe_owner', 'manager']}><BookingsPage /></RoleGuard>} />
             <Route path="/analytics" element={<RoleGuard roles={['super_admin', 'admin', 'cafe_owner']}><AnalyticsPage /></RoleGuard>} />
             <Route path="/notifications" element={<NotificationsPage />} />

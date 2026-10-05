@@ -1,5 +1,4 @@
 import { Role, ROLE_RANK, CHILD_ROLE } from '../types/auth';
-import { POC_MODE, POC_ALLOWED_PATHS } from './pocConfig';
 
 export function canCreateRole(creatorRole: Role): Role | null {
   return CHILD_ROLE[creatorRole];
@@ -26,9 +25,10 @@ export const ROUTES: RouteConfig[] = [
   { path: '/users', label: 'User Management', icon: 'Users', roles: ['super_admin', 'admin', 'cafe_owner'] },
   { path: '/gpu-nodes', label: 'GPU Nodes', icon: 'Cpu', roles: ['super_admin'] },
   { path: '/branches', label: 'Branches', icon: 'Building2', roles: ['super_admin', 'admin', 'cafe_owner'] },
-  { path: '/seats', label: 'Seat Management', icon: 'Monitor', roles: ['manager'] },
+  { path: '/seats', label: 'Seat Management', icon: 'Monitor', roles: ['cafe_owner', 'manager'] },
   { path: '/bookings', label: 'Pre-Booking', icon: 'CalendarCheck', roles: ['cafe_owner', 'manager'] },
   { path: '/billing/session', label: 'Billing Session', icon: 'Wallet', roles: ['super_admin', 'admin', 'cafe_owner', 'manager'] },
+  { path: '/billing/settlements', label: 'Settlements', icon: 'Receipt', roles: ['super_admin', 'admin', 'cafe_owner', 'manager'] },
   { path: '/monitoring', label: 'Monitoring', icon: 'Radar', roles: ['super_admin'] },
   { path: '/issues', label: 'Issue Reports', icon: 'AlertTriangle', roles: ['super_admin', 'admin', 'cafe_owner'] },
   { path: '/deletion-requests', label: 'Deletion Requests', icon: 'UserMinus', roles: ['super_admin'] },
@@ -38,7 +38,5 @@ export const ROUTES: RouteConfig[] = [
 ];
 
 export function getRoutesForRole(role: Role): RouteConfig[] {
-  const base = ROUTES.filter(r => r.roles.includes(role));
-  if (POC_MODE) return base.filter(r => POC_ALLOWED_PATHS.has(r.path));
-  return base;
+  return ROUTES.filter(r => r.roles.includes(role));
 }
